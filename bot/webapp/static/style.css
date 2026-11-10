@@ -1,0 +1,17 @@
+:root { color-scheme: dark; }
+body { font-family: system-ui, sans-serif; background: #14161a; color: #e8e8e8; margin: 0; }
+main { max-width: 480px; margin: 0 auto; padding: 16px; display: flex; flex-direction: column; gap: 16px; }
+h1 { font-size: 20px; margin: 8px 0 0; }
+h2 { font-size: 15px; margin: 0 0 8px; color: #9aa4b2; }
+section { background: #1d2026; border-radius: 12px; padding: 14px; display: flex; flex-direction: column; gap: 10px; }
+label { display: flex; flex-direction: column; gap: 4px; font-size: 14px; }
+label.check { flex-direction: row; align-items: center; gap: 8px; }
+input, select { background: #14161a; border: 1px solid #333; border-radius: 8px; color: inherit; padding: 8px; font-size: 14px; }
+.row { display: flex; gap: 8px; }
+.pill { flex: 1; padding: 10px; border-radius: 10px; border: 1px solid #333; background: #14161a; color: inherit; }
+.pill.active { background: #2b5cff; border-color: #2b5cff; }
+.primary { padding: 12px; border-radius: 10px; border: 0; background: #2b5cff; color: #fff; font-size: 15px; }
+.danger { padding: 12px; border-radius: 10px; border: 0; background: #b3261e; color: #fff; font-size: 15px; }
+#targets_list { max-height: 220px; overflow: auto; display: flex; flex-direction: column; gap: 6px; }
+pre { white-space: pre-wrap; margin: 0; font-size: 13px; }
+#status { min-height: 18px; color: #9aa4b2; font-size: 13px; }
