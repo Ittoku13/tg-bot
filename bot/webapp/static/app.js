@@ -98,11 +98,12 @@ $("char-clean").onclick = () => setCharacter("clean").catch((e) => status("Ош�
 $("char-adult").onclick = () => setCharacter("adult").catch((e) => status("Ошибка: " + e.message));
 $("mock_mode").onchange = () => { $("targets_block").hidden = $("mock_mode").value !== "targets"; };
 $("targets_search").oninput = () => renderTargets(state);
-$("reset_rating").onclick = async () => {
+const resetRating = async () => {
   if (!confirm("Сбросить весь рейтинг? Это не отменить.")) return;
   await api("/api/reset_rating", { method: "POST" });
   status("Рейтинг сброшен");
   await load();
 };
+$("reset_rating").onclick = () => resetRating().catch((e) => status("Ошибка: " + e.message));
 
 load().catch((e) => status("Ошибка загрузки: " + e.message));
