@@ -1,0 +1,4 @@
+services:
+  bot:
+    ports:
+      - "8080:8080"
