@@ -90,6 +90,11 @@ def test_process_video_compresses_oversized(tmp_path, monkeypatch):
          "-pix_fmt", "yuv420p", str(fixture)],
         check=True, capture_output=True,
     )
+    bin_dir = tmp_path / "bin"
+    bin_dir.mkdir()
+    _make_fake_ytdlp(bin_dir, fixture)
+    monkeypatch.setenv("PATH", f"{bin_dir}{os.pathsep}{os.environ['PATH']}")
+
     import bot.services.downloader as downloader_module
     monkeypatch.setattr(downloader_module, "SIZE_LIMIT_BYTES", fixture.stat().st_size - 1)
 
