@@ -1,0 +1,32 @@
+services:
+  bot:
+    build: .
+    env_file: .env
+    volumes:
+      - bot-data:/app/data
+    restart: unless-stopped
+
+  caddy:
+    image: caddy:2
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+    environment:
+      WEBAPP_DOMAIN: ${WEBAPP_DOMAIN}
+
+  watchtower:
+    image: containrrr/watchtower
+    profiles: ["watchtower"]
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    command: --interval 3600 --cleanup
+
+volumes:
+  bot-data:
+  caddy-data:
+  caddy-config:

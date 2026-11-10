@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>tg-bot admin</title>
+  <link rel="stylesheet" href="/style.css">
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+</head>
+<body>
+  <main>
+    <h1>Админка бота</h1>
+
+    <section>
+      <h2>Характер</h2>
+      <div class="row">
+        <button id="char-clean" class="pill">Цензурный</button>
+        <button id="char-adult" class="pill">18+</button>
+      </div>
+    </section>
+
+    <section>
+      <h2>Игра</h2>
+      <label>Название роли <input id="role" type="text" maxlength="64"></label>
+      <label>Время выбора <input id="pick_time" type="time"></label>
+      <label class="check"><input id="auto_pick" type="checkbox"> Автовыбор каждый день</label>
+      <label class="check"><input id="exclude_last" type="checkbox"> Не выбирать вчерашнего</label>
+    </section>
+
+    <section>
+      <h2>Мок-ответы</h2>
+      <label>Вероятность, % <input id="mock_chance" type="number" min="0" max="100"></label>
+      <label>Кулдаун, мин <input id="mock_cooldown" type="number" min="0"></label>
+      <label>Режим
+        <select id="mock_mode">
+          <option value="all">На всех</option>
+          <option value="targets">Только на выбранных</option>
+        </select>
+      </label>
+      <div id="targets_block" hidden>
+        <input id="targets_search" type="search" placeholder="Поиск…">
+        <div id="targets_list"></div>
+      </div>
+    </section>
+
+    <section>
+      <h2>Рейтинг</h2>
+      <pre id="rating"></pre>
+    </section>
+
+    <section>
+      <button id="save" class="primary">Сохранить</button>
+      <button id="reset_rating" class="danger">Сбросить рейтинг</button>
+    </section>
+
+    <p id="status"></p>
+  </main>
+  <script src="/app.js"></script>
+</body>
+</html>
