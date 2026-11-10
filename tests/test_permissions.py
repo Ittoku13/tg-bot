@@ -2,6 +2,7 @@ import asyncio
 
 import pytest
 
+from bot.handlers.admin import is_valid_webapp_url
 from bot.services.permissions import is_admin
 
 
@@ -39,3 +40,16 @@ def test_api_error_is_not_admin():
 
 def test_no_superadmin_configured():
     assert asyncio.run(is_admin(Bot("member"), 1, 42, None)) is False
+
+
+@pytest.mark.parametrize("url,expected", [
+    ("https://admin.example.com", True),
+    ("https://sub.domain.org/path", True),
+    ("https://localhost", False),
+    ("https://192.168.1.1", False),
+    ("http://example.com", False),
+    ("https://", False),
+    ("not-a-url", False),
+])
+def test_is_valid_webapp_url(url, expected):
+    assert is_valid_webapp_url(url) is expected

@@ -1,3 +1,5 @@
+from urllib.parse import urlparse
+
 from aiogram import F, Router
 from aiogram.filters import Command
 from aiogram.types import (CallbackQuery, InlineKeyboardButton,
@@ -7,6 +9,14 @@ from bot.config import Config
 from bot.personality import Personality
 from bot.services.permissions import is_admin
 from bot.storage import Storage
+
+
+def is_valid_webapp_url(url: str) -> bool:
+    parsed = urlparse(url)
+    host = parsed.hostname or ""
+    if parsed.scheme != "https" or "." not in host:
+        return False
+    return not all(part.isdigit() for part in host.split("."))
 
 
 def _char_kb() -> InlineKeyboardMarkup:
@@ -57,6 +67,12 @@ def build_admin_router(bot, storage: Storage, personality: Personality,
         settings = storage.settings(message.chat.id)
         if not await admin_only(message):
             await message.answer(personality.phrase(settings.character, "error"))
+            return
+        if not is_valid_webapp_url(config.webapp_url):
+            await message.answer(
+                "Мини-апп не настроен: задайте WEBAPP_DOMAIN в .env "
+                "(домен с HTTPS, например admin.example.com) и перезапустите бота."
+            )
             return
         kb = InlineKeyboardMarkup(inline_keyboard=[[
             InlineKeyboardButton(text="Открыть админку",

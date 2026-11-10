@@ -7,7 +7,7 @@ from pathlib import Path
 
 import uvicorn
 from aiogram import Bot, Dispatcher
-from aiogram.types import Message
+from aiogram.types import BotCommand, ErrorEvent, Message
 
 from bot.config import Config, load_config
 from bot.db import connect
@@ -58,8 +58,8 @@ def create_dispatcher(config: Config, storage: Storage,
     dp.include_router(build_mock_router(storage, personality, config.timezone, rng))
 
     @dp.error()
-    async def on_error(event, exception):
-        log.exception("update failed: %s", exception)
+    async def on_error(event: ErrorEvent) -> None:
+        log.error("update failed: %r", event.exception, exc_info=event.exception)
 
     return dp
 
@@ -89,6 +89,13 @@ async def amain() -> None:
     tmp = Path(config.data_dir) / "tmp"
     tmp.mkdir(parents=True, exist_ok=True)
     cleanup_tmp(tmp)
+
+    await bot.set_my_commands([
+        BotCommand(command="rating", description="Рейтинг «Олега дня»"),
+        BotCommand(command="mystats", description="Моя статистика"),
+        BotCommand(command="character", description="Характер бота (админы)"),
+        BotCommand(command="admin", description="Админка (админы)"),
+    ])
 
     log.info("starting bot (polling) + webapp (:8080)")
     await asyncio.gather(
