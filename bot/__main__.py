@@ -1,6 +1,7 @@
 import asyncio
 import logging
 import random
+import shutil
 from datetime import datetime
 from pathlib import Path
 
@@ -63,6 +64,16 @@ def create_dispatcher(config: Config, storage: Storage,
     return dp
 
 
+def cleanup_tmp(tmp: Path) -> None:
+    if not tmp.exists():
+        return
+    for f in tmp.glob("**/*"):
+        if f.is_dir():
+            shutil.rmtree(f, ignore_errors=True)
+        else:
+            f.unlink(missing_ok=True)
+
+
 async def amain() -> None:
     config = load_config()
     setup_logging(Path(config.data_dir))
@@ -77,8 +88,7 @@ async def amain() -> None:
                                            log_level="info"))
     tmp = Path(config.data_dir) / "tmp"
     tmp.mkdir(parents=True, exist_ok=True)
-    for f in tmp.glob("**/*"):
-        f.unlink(missing_ok=True)
+    cleanup_tmp(tmp)
 
     log.info("starting bot (polling) + webapp (:8080)")
     await asyncio.gather(
