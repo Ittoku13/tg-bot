@@ -6,7 +6,7 @@ from bot.db import connect
 from bot.storage import Settings, Storage
 
 MSK = timezone(timedelta(hours=3))
-NOW = datetime(2026, 11, 10, 12, 0, tzinfo=MSK)
+NOW = datetime.now(MSK)
 
 
 @pytest.fixture()
