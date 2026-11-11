@@ -10,7 +10,8 @@ from aiogram.types import FSInputFile, Message
 from bot.config import Config
 from bot.personality import Personality
 from bot.services.downloader import (UrlCache, VideoError, VideoTooBig,
-                                     extract_video_url, process_video)
+                                     VideoTooLong, extract_video_url,
+                                     process_video)
 from bot.storage import Storage
 
 log = logging.getLogger(__name__)
@@ -60,7 +61,10 @@ def build_video_router(bot, storage: Storage, personality: Personality,
         try:
             await bot.send_chat_action(chat_id, "upload_video")
             video = await process_video(
-                url, workdir, cookies if cookies.exists() else None)
+                url, workdir, cookies if cookies.exists() else None,
+                max_size_bytes=config.video_max_size_mb * 1024 * 1024,
+                max_duration_seconds=config.video_max_duration_seconds,
+            )
             await message.answer_video(
                 FSInputFile(video),
                 caption=personality.phrase(settings.character, "video_ok",
@@ -70,6 +74,12 @@ def build_video_router(bot, storage: Storage, personality: Personality,
         except VideoTooBig:
             await message.answer(
                 personality.phrase(settings.character, "video_too_big", url=url),
+                reply_to_message_id=message.message_id)
+        except VideoTooLong:
+            await message.answer(
+                personality.phrase(
+                    settings.character, "video_too_long",
+                    limit=config.video_max_duration_seconds),
                 reply_to_message_id=message.message_id)
         except VideoError as e:
             log.info("video failed: %s", e.reason)

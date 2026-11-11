@@ -1,4 +1,5 @@
 import asyncio
+import json
 import re
 from datetime import datetime, timedelta
 from pathlib import Path
@@ -19,6 +20,8 @@ STAGES = [
     {"scale": 360, "crf": 36},
 ]
 DOWNLOAD_TIMEOUT = 300.0
+METADATA_TIMEOUT = 60.0
+DEFAULT_MAX_DURATION_SECONDS = 600
 
 
 class VideoError(Exception):
@@ -28,6 +31,10 @@ class VideoError(Exception):
 
 
 class VideoTooBig(VideoError):
+    pass
+
+
+class VideoTooLong(VideoError):
     pass
 
 
@@ -62,17 +69,38 @@ class UrlCache:
         self._items = {k: v for k, v in self._items.items() if v > cutoff}
 
 
-async def _run(cmd: list[str], timeout: float, what: str) -> None:
+async def _run(cmd: list[str], timeout: float, what: str) -> bytes:
     proc = await asyncio.create_subprocess_exec(
         *cmd, stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE)
     try:
-        _, stderr = await asyncio.wait_for(proc.communicate(), timeout)
+        stdout, stderr = await asyncio.wait_for(proc.communicate(), timeout)
     except TimeoutError:
         proc.kill()
         raise VideoError(f"{what}: timeout")
     if proc.returncode != 0:
         tail = (stderr or b"").decode(errors="replace")[-300:]
         raise VideoError(f"{what}: {tail.strip() or 'unknown error'}")
+    return stdout or b""
+
+
+async def get_video_duration(url: str, cookies: Path | None = None,
+                             timeout: float = METADATA_TIMEOUT) -> float:
+    cmd = ["yt-dlp", "--dump-single-json", "--skip-download", "--no-playlist"]
+    if cookies and Path(cookies).exists():
+        cmd += ["--cookies", str(cookies)]
+    cmd.append(url)
+    stdout = await _run(cmd, timeout, "metadata")
+    try:
+        info = json.loads(stdout)
+    except (json.JSONDecodeError, UnicodeDecodeError) as e:
+        raise VideoError("metadata: invalid response") from e
+    duration = info.get("duration")
+    if duration is None:
+        raise VideoError("metadata: duration unavailable")
+    try:
+        return float(duration)
+    except (TypeError, ValueError) as e:
+        raise VideoError("metadata: invalid duration") from e
 
 
 async def download_video(url: str, out_dir: Path,
@@ -118,12 +146,20 @@ async def compress_video(src: Path, dst: Path, stage: dict,
 
 
 async def process_video(url: str, workdir: Path,
-                        cookies: Path | None = None) -> Path:
+                         cookies: Path | None = None,
+                         max_size_bytes: int | None = None,
+                         max_duration_seconds: int = DEFAULT_MAX_DURATION_SECONDS) -> Path:
     workdir = Path(workdir)
+    if max_size_bytes is None:
+        max_size_bytes = SIZE_LIMIT_BYTES
+    duration = await get_video_duration(url, cookies)
+    if duration > max_duration_seconds:
+        raise VideoTooLong(
+            f"duration {duration:g}s exceeds limit {max_duration_seconds}s")
     current = await download_video(url, workdir, cookies)
     try:
         stage_index = 0
-        while current.stat().st_size > SIZE_LIMIT_BYTES:
+        while current.stat().st_size > max_size_bytes:
             if stage_index >= len(STAGES):
                 raise VideoTooBig("exceeds size limit after all compression stages")
             compressed = await compress_video(

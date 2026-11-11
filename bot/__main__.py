@@ -74,6 +74,17 @@ def cleanup_tmp(tmp: Path) -> None:
             f.unlink(missing_ok=True)
 
 
+async def configure_bot(bot: Bot) -> None:
+    await bot.delete_webhook(drop_pending_updates=False)
+    await bot.set_my_commands([
+        BotCommand(command="rating", description="Рейтинг «Олега дня»"),
+        BotCommand(command="mystats", description="Моя статистика"),
+        BotCommand(command="character", description="Характер бота (админы)"),
+        BotCommand(command="admin", description="Админка (админы)"),
+    ])
+    log.info("telegram webhook disabled and bot commands registered")
+
+
 async def amain() -> None:
     config = load_config()
     setup_logging(Path(config.data_dir))
@@ -90,12 +101,7 @@ async def amain() -> None:
     tmp.mkdir(parents=True, exist_ok=True)
     cleanup_tmp(tmp)
 
-    await bot.set_my_commands([
-        BotCommand(command="rating", description="Рейтинг «Олега дня»"),
-        BotCommand(command="mystats", description="Моя статистика"),
-        BotCommand(command="character", description="Характер бота (админы)"),
-        BotCommand(command="admin", description="Админка (админы)"),
-    ])
+    await configure_bot(bot)
 
     log.info("starting bot (polling) + webapp (:8080)")
     await asyncio.gather(

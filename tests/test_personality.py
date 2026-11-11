@@ -24,7 +24,7 @@ def test_phrase_replaces_placeholders(personality):
 
 
 def test_every_event_has_variants(personality):
-    events = ["pick", "video_ok", "video_fail", "video_too_big",
+    events = ["pick", "video_ok", "video_fail", "video_too_big", "video_too_long",
               "rating_header", "rating_empty", "help", "error"]
     for name in personality.names():
         for event in events:

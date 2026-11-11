@@ -9,8 +9,9 @@ from pathlib import Path
 import pytest
 
 from bot.services.downloader import (
-    SIZE_LIMIT_BYTES, STAGES, UrlCache, VideoTooBig, compress_video,
-    download_video, extract_video_url, next_stage_index, process_video,
+    SIZE_LIMIT_BYTES, STAGES, UrlCache, VideoTooBig, VideoTooLong,
+    compress_video, download_video, extract_video_url, next_stage_index,
+    process_video,
 )
 
 NOW = datetime(2026, 11, 10, 12, 0, tzinfo=timezone.utc)
@@ -53,10 +54,14 @@ def test_url_cache_ttl():
     assert not cache.seen_recently(1, "https://youtu.be/y", NOW)
 
 
-def _make_fake_ytdlp(bin_dir: Path, fixture: Path) -> Path:
+def _make_fake_ytdlp(bin_dir: Path, fixture: Path, duration: int = 2) -> Path:
     script = bin_dir / "yt-dlp"
     script.write_text(
         "#!/bin/sh\n"
+        'if [ "$1" = "--dump-single-json" ]; then\n'
+        f'  printf \'{{"duration": {duration}}}\\n\'\n'
+        "  exit 0\n"
+        "fi\n"
         'while [ "$#" -gt 0 ]; do\n'
         '  if [ "$1" = "-o" ]; then\n'
         f'    cp "{fixture}" "$(dirname "$2")/out.mp4"\n'
@@ -80,6 +85,48 @@ def test_download_video_with_fake_ytdlp(tmp_path, monkeypatch):
 
     out = asyncio.run(download_video("https://youtu.be/x", tmp_path / "out"))
     assert out.read_bytes() == b"fake video bytes"
+
+
+def test_process_video_rejects_too_long_before_download(tmp_path, monkeypatch):
+    fixture = tmp_path / "fixture.mp4"
+    fixture.write_bytes(b"fake video bytes")
+    bin_dir = tmp_path / "bin"
+    bin_dir.mkdir()
+    _make_fake_ytdlp(bin_dir, fixture, duration=121)
+    monkeypatch.setenv("PATH", f"{bin_dir}{os.pathsep}{os.environ['PATH']}")
+
+    with pytest.raises(VideoTooLong, match="exceeds limit 120s"):
+        asyncio.run(process_video(
+            "https://youtu.be/x", tmp_path / "work", max_duration_seconds=120))
+    assert not (tmp_path / "work").exists()
+
+
+def test_process_video_uses_custom_size_limit(tmp_path, monkeypatch):
+    source = tmp_path / "source.mp4"
+    source.write_bytes(b"x" * 100)
+    stages = []
+
+    async def fake_duration(url, cookies):
+        return 2
+
+    async def fake_download(url, workdir, cookies):
+        workdir.mkdir(parents=True)
+        return source
+
+    async def fake_compress(src, dst, stage):
+        stages.append(stage)
+        dst.write_bytes(b"x")
+        return dst
+
+    monkeypatch.setattr("bot.services.downloader.get_video_duration", fake_duration)
+    monkeypatch.setattr("bot.services.downloader.download_video", fake_download)
+    monkeypatch.setattr("bot.services.downloader.compress_video", fake_compress)
+
+    out = asyncio.run(process_video(
+        "https://youtu.be/x", tmp_path / "work",
+        max_size_bytes=10, max_duration_seconds=2))
+    assert out.read_bytes() == b"x"
+    assert stages == [STAGES[0]]
 
 
 @pytest.mark.skipif(not shutil.which("ffmpeg"), reason="ffmpeg not installed")

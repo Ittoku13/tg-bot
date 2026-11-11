@@ -10,6 +10,8 @@ video_fail:
   - "Видео недоступно ({reason})."
 video_too_big:
   - "Видео слишком длинное — в чат не влезает даже после обжатия."
+video_too_long:
+  - "Видео длиннее {limit} секунд. Отправь что-нибудь покороче."
 rating_header:
   - "Топ по званию «{role}» {period}:"
 rating_empty:
